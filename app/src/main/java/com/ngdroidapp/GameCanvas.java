@@ -1,5 +1,6 @@
 package com.ngdroidapp;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
@@ -8,6 +9,7 @@ import java.util.Random;
 import java.util.Vector;
 
 import istanbul.gamelab.ngdroid.base.BaseCanvas;
+import istanbul.gamelab.ngdroid.core.AppManager;
 import istanbul.gamelab.ngdroid.core.NgMediaPlayer;
 import istanbul.gamelab.ngdroid.util.Log;
 import istanbul.gamelab.ngdroid.util.Utils;
@@ -30,13 +32,19 @@ public class GameCanvas extends BaseCanvas {
     private int bulletx_temp, bullety_temp;
     private int sesefekti_patlama;
 
-    private boolean enemyexist, exploded, donmeboolean;
+    private boolean enemyexist, exploded, donmeboolean, spriteexist;
 
     private NgMediaPlayer arkaplan_muzik;
 
     private int enemyspeedx, enemyspeedy, enemyx, enemyy, donmenoktasi;
 
     private Random enemyrnd;
+
+    private long prevtime, time;
+    private Rect lasersrc, laserdst1, laserdst2,  restartsrc, playsrc, exitsrc, restartdst, playdst, exitdst;
+    private Bitmap laser, buttons;
+    private int laserspeed, lasery, laserx1, laserx2;
+    private boolean guishow, playshow;
 
     int touchx, touchy;//Ekranda bastigimiz yerlerin koordinatlari
 
@@ -124,6 +132,27 @@ public class GameCanvas extends BaseCanvas {
         donmeboolean = true;
 
         enemyrnd = new Random();
+
+        prevtime = System.currentTimeMillis();
+        laser = Utils.loadImage(root, "images/beams1.png");
+        lasersrc = new Rect();
+        laserdst1 = new Rect();
+        laserdst2 = new Rect();
+        laserspeed = 48;
+        lasery = -500;
+
+        spriteexist = true;
+
+        buttons = Utils.loadImage(root,"images/buttons.png");
+        restartsrc = new Rect();
+        restartdst = new Rect();
+        playsrc = new Rect();
+        playdst = new Rect();
+        exitsrc = new Rect();
+        exitdst = new Rect();
+
+        guishow = false;
+        playshow = true;
     }
 
 
@@ -132,6 +161,11 @@ public class GameCanvas extends BaseCanvas {
         //Log.i(TAG, "mehmet agca");
 
         tilesrc.set(0,0,64,64);
+        playsrc.set(0,0,256,256);
+        playdst.set(getWidthHalf() - 64, getHeightHalf() - 64, getWidthHalf() + 64, getHeightHalf() + 64);
+
+        if(playshow)
+            return;
 
         if(donmeboolean)
         {
@@ -192,7 +226,11 @@ public class GameCanvas extends BaseCanvas {
             animasyonno = 0;
 
         spritesrc.set(kareno*128, animasyonyonu*128,(kareno+1)*128, (animasyonyonu+1)*128);//Resimden aldigimiz koordinatlar
-        spritedst.set(spritex, spritey, spritex+256, spritey+256);//Ekrana cizilecegi koordinatlar
+
+        if(spriteexist)
+        {
+            spritedst.set(spritex, spritey, spritex+256, spritey+256);//Ekrana cizilecegi koordinatlar
+        }
 
         bulletsrc.set(0,0,70,70);
         //bulletdst.set(bulletx_temp, bullety_temp, bulletx_temp + 32, bullety_temp + 32);
@@ -213,7 +251,7 @@ public class GameCanvas extends BaseCanvas {
         {
             if(enemydst.contains(bulletdst.elementAt(i))) // enemy ve bullet kesistimi kontrolu yapiliyor.
             {
-                explodedst.set(bulletx2.elementAt(i)-64, bullety2.elementAt(i)-64, bulletx2.elementAt(i)+64, bullety2.elementAt(i)+64);
+                explodedst.set(enemyx, enemyy, enemyx + 256, enemyy + 256);
 
                 bulletdst.removeElementAt(i);
                 bulletx2.removeElementAt(i);
@@ -245,6 +283,36 @@ public class GameCanvas extends BaseCanvas {
 
         if(enemyx + 256 > getWidth() || enemyx < 0)
             enemyspeedx = -enemyspeedx; // sınırlara gelince geri donmesi icin eksi ile carptik.
+
+        time = System.currentTimeMillis();
+        if(time > prevtime + 3000 && enemyexist)//3 sn ye sonra olduysa ates etme aktif olsun.
+        {
+            prevtime = time;
+            laserx1 = enemyx;
+            laserx2 = enemyx + 192;
+            laserdst1.set(laserx1, enemyy -128, enemyx + 64, enemyy);
+            laserdst2.set(laserx2 + 192, enemyy - 128, enemyx +256, enemyy);
+            lasery = enemyy - 90;
+        }
+
+        lasery -= laserspeed;
+        lasersrc.set(0,0,64,128);
+
+        laserdst1.set(laserx1, lasery, laserx1 + 32, lasery + 64);//laserx1 + 64, lasery + 128
+        laserdst2.set(laserx2, lasery, laserx2 + 32, lasery + 64);
+
+        if(spritedst.intersect(laserdst1) || spritedst.intersect(laserdst2))
+        {
+            spritedst.set(0,0,0,0);
+            spriteexist = false;
+            guishow = true;
+        }
+
+        restartsrc.set(256,0,512,256);
+        exitsrc.set(512,0,768,256);
+
+        restartdst.set(getWidthHalf() - 192, getHeightHalf() - 64, getWidthHalf() - 64, getHeightHalf() + 64);
+        exitdst.set(getWidthHalf() + 64, getHeightHalf() - 64, getWidthHalf() + 192, getHeightHalf() + 64);
     }
 
     public void draw(Canvas canvas) {
@@ -289,6 +357,18 @@ public class GameCanvas extends BaseCanvas {
 
         if(exploded)
             canvas.drawBitmap(explode, explodesrc, explodedst, null);
+
+        canvas.drawBitmap(laser, lasersrc, laserdst1, null);
+        canvas.drawBitmap(laser, lasersrc, laserdst2, null);
+
+        if(playshow)
+            canvas.drawBitmap(buttons, playsrc, playdst, null);
+
+        if(guishow)
+        {
+            canvas.drawBitmap(buttons, restartsrc, restartdst, null);
+            canvas.drawBitmap(buttons, exitsrc, exitdst, null);
+        }
     }
 
     public Rect getexplodeframe(int frameno)
@@ -332,6 +412,7 @@ public class GameCanvas extends BaseCanvas {
     }
 
     public void touchUp(int x, int y) {
+        //region control
         if((x - touchx) > 100)//saga cektiysek
         {
             animasyonno = 1;
@@ -422,6 +503,26 @@ public class GameCanvas extends BaseCanvas {
 
             bulletdst.add(new Rect(bulletx_temp, bullety_temp, bulletx_temp + 32, bullety_temp + 32));
         }
+        //endregion
+
+        //region gui control
+        if(guishow)
+        {
+            if (restartdst.contains(x, y)) {
+                //Log.i(TAG, "Restart Tıklandı!");
+                root.setup();
+            }
+            if (exitdst.contains(x, y)) {
+                //Log.i(TAG, "Exit Tıklandı!");
+                System.exit(0);
+            }
+        }
+        if (playdst.contains(x, y))// fare ile tiklanan x ve y noktalari play butonunun icindemi?
+        {
+            Log.i(TAG, "Play Tıklandı!");
+            playshow = false;
+        }
+        //endregion
     }
 
 
