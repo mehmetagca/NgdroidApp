@@ -3,6 +3,7 @@ package com.ngdroidapp;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Rect;
 
 import java.util.Random;
@@ -41,15 +42,21 @@ public class GameCanvas extends BaseCanvas {
     private Random enemyrnd;
 
     private long prevtime, time;
-    private Rect lasersrc, laserdst1, laserdst2,  restartsrc, playsrc, exitsrc, restartdst, playdst, exitdst;
+    private Rect lasersrc, laserdst1, laserdst2,  restartsrc, exitsrc, restartdst, exitdst;//playsrc, playdst
     private Bitmap laser, buttons;
     private int laserspeed, lasery, laserx1, laserx2;
-    private boolean guishow, playshow;
+    private boolean guishow; //playshow;
+
+    private Paint textcolor;
+    private int textsize;
+    private String text;
 
     int touchx, touchy;//Ekranda bastigimiz yerlerin koordinatlari
 
     public Vector<Rect> bulletdst;
     public Vector<Integer> bulletx2, bullety2, bulletoffsetx2, bulletoffsety2, bulletspeedx2, bulletspeedy2;
+
+    private MenuCanvas mc;
 
     public GameCanvas(NgApp ngApp) {
         super(ngApp);
@@ -146,13 +153,22 @@ public class GameCanvas extends BaseCanvas {
         buttons = Utils.loadImage(root,"images/buttons.png");
         restartsrc = new Rect();
         restartdst = new Rect();
-        playsrc = new Rect();
-        playdst = new Rect();
+        /*playsrc = new Rect();
+        playdst = new Rect();*/
         exitsrc = new Rect();
         exitdst = new Rect();
 
         guishow = false;
-        playshow = true;
+        /*playshow = true;*/
+
+        mc = new MenuCanvas(root);
+
+        textcolor = new Paint();
+        textcolor.setARGB(255, 255, 0, 0); // ilk parametre alfa saydamlıgı belirtir
+        textsize = 96;
+        textcolor.setTextSize(textsize);
+        text = "GAME OVER";
+        textcolor.setTextAlign(Paint.Align.CENTER);
     }
 
 
@@ -161,11 +177,11 @@ public class GameCanvas extends BaseCanvas {
         //Log.i(TAG, "mehmet agca");
 
         tilesrc.set(0,0,64,64);
-        playsrc.set(0,0,256,256);
+        /*playsrc.set(0,0,256,256);
         playdst.set(getWidthHalf() - 64, getHeightHalf() - 64, getWidthHalf() + 64, getHeightHalf() + 64);
 
         if(playshow)
-            return;
+            return;*/
 
         if(donmeboolean)
         {
@@ -264,6 +280,8 @@ public class GameCanvas extends BaseCanvas {
                 exploded = true;
 
                 root.soundManager.play(sesefekti_patlama);
+
+                guishow = true;
             }
         }
 
@@ -361,11 +379,12 @@ public class GameCanvas extends BaseCanvas {
         canvas.drawBitmap(laser, lasersrc, laserdst1, null);
         canvas.drawBitmap(laser, lasersrc, laserdst2, null);
 
-        if(playshow)
-            canvas.drawBitmap(buttons, playsrc, playdst, null);
+        /*if(playshow)
+            canvas.drawBitmap(buttons, playsrc, playdst, null);*/
 
         if(guishow)
         {
+            canvas.drawText(text, getWidthHalf(), getHeightHalf() - 300, textcolor);
             canvas.drawBitmap(buttons, restartsrc, restartdst, null);
             canvas.drawBitmap(buttons, exitsrc, exitdst, null);
         }
@@ -510,18 +529,21 @@ public class GameCanvas extends BaseCanvas {
         {
             if (restartdst.contains(x, y)) {
                 //Log.i(TAG, "Restart Tıklandı!");
-                root.setup();
+                setup();//root.setup();
             }
             if (exitdst.contains(x, y)) {
                 //Log.i(TAG, "Exit Tıklandı!");
-                System.exit(0);
+
+                root.canvasManager.setCurrentCanvas(mc);
+
+                //System.exit(0);
             }
         }
-        if (playdst.contains(x, y))// fare ile tiklanan x ve y noktalari play butonunun icindemi?
+        /*if (playdst.contains(x, y))// fare ile tiklanan x ve y noktalari play butonunun icindemi?
         {
             Log.i(TAG, "Play Tıklandı!");
             playshow = false;
-        }
+        }*/
         //endregion
     }
 
